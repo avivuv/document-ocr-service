@@ -1,0 +1,165 @@
+{
+  "info": {
+    "name": "Doc OCR Service — v1",
+    "description": "Kontrak lengkap ada di .docs/API.md. Isi variabel koleksi `base_url` dan `token` sebelum menjalankan request.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "base_url",
+      "value": "http://127.0.0.1:8000",
+      "type": "string"
+    },
+    {
+      "key": "token",
+      "value": "isi dari OCR_API_TOKENS",
+      "type": "string"
+    }
+  ],
+  "auth": {
+    "type": "bearer",
+    "bearer": [
+      {
+        "key": "token",
+        "value": "{{token}}",
+        "type": "string"
+      }
+    ]
+  },
+  "item": [
+    {
+      "name": "Health",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{base_url}}/api/v1/health",
+          "host": ["{{base_url}}"],
+          "path": ["api", "v1", "health"]
+        },
+        "description": "Status service dan ketersediaan binary. status bernilai \"degraded\" bila ada binary wajib yang belum terpasang, tetapi tetap mengembalikan 200 supaya monitoring bisa membaca detailnya."
+      }
+    },
+    {
+      "name": "Doc Types",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{base_url}}/api/v1/doc-types",
+          "host": ["{{base_url}}"],
+          "path": ["api", "v1", "doc-types"]
+        },
+        "description": "Jenis dokumen yang didukung beserta field yang mungkin dikembalikan. Consumer membaca kemampuan service dari sini — jangan hardcode daftarnya di sisi consumer."
+      }
+    },
+    {
+      "name": "Analyze — upload multipart",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "X-Request-Id",
+            "value": "manual-001"
+          }
+        ],
+        "body": {
+          "mode": "formdata",
+          "formdata": [
+            {
+              "key": "file",
+              "type": "file",
+              "src": null
+            },
+            {
+              "key": "doc_type",
+              "value": "NPWP",
+              "type": "text"
+            },
+            {
+              "key": "options",
+              "value": "{\"return_raw_text\":true,\"return_words\":false}",
+              "type": "text"
+            }
+          ]
+        },
+        "url": {
+          "raw": "{{base_url}}/api/v1/documents/analyze",
+          "host": ["{{base_url}}"],
+          "path": ["api", "v1", "documents", "analyze"]
+        },
+        "description": "Bentuk untuk pengujian manual. Pilih berkas pada field `file`. Bila `file` terkirim, `source` boleh dihilangkan."
+      }
+    },
+    {
+      "name": "Analyze — path di server",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "X-Request-Id",
+            "value": "job-8842"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"source\": {\n    \"type\": \"path\",\n    \"value\": \"C:/laragon/www/cimb-ocr/storage/app/inbox/npwp-contoh.pdf\"\n  },\n  \"doc_type\": \"NPWP\",\n  \"options\": {\n    \"max_pages\": 5,\n    \"return_raw_text\": true\n  }\n}"
+        },
+        "url": {
+          "raw": "{{base_url}}/api/v1/documents/analyze",
+          "host": ["{{base_url}}"],
+          "path": ["api", "v1", "documents", "analyze"]
+        },
+        "description": "Bentuk yang dipakai worker consumer: service membaca berkas langsung dari disk, tanpa menyalin berkas lewat HTTP. Path wajib berada di dalam OCR_ALLOWED_BASE_PATHS."
+      }
+    },
+    {
+      "name": "Analyze — base64",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"source\": {\n    \"type\": \"base64\",\n    \"value\": \"JVBERi0xLjQK...\",\n    \"filename\": \"npwp.pdf\"\n  },\n  \"doc_type\": \"NPWP\"\n}"
+        },
+        "url": {
+          "raw": "{{base_url}}/api/v1/documents/analyze",
+          "host": ["{{base_url}}"],
+          "path": ["api", "v1", "documents", "analyze"]
+        },
+        "description": "Dipakai bila service dipindah ke host lain sehingga tidak bisa membaca berkas dari disk consumer. `filename` wajib diisi karena ekstensinya menentukan validasi magic bytes."
+      }
+    },
+    {
+      "name": "Analyze — klasifikasi otomatis",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"source\": {\n    \"type\": \"path\",\n    \"value\": \"C:/laragon/www/cimb-ocr/storage/app/inbox/npwp-contoh.pdf\"\n  }\n}"
+        },
+        "url": {
+          "raw": "{{base_url}}/api/v1/documents/analyze",
+          "host": ["{{base_url}}"],
+          "path": ["api", "v1", "documents", "analyze"]
+        },
+        "description": "Tanpa doc_type, service memilih parser dengan skor kecocokan tertinggi dan mengisi doc_type_confidence. Bila tidak ada yang meyakinkan, doc_type bernilai null dan tidak ada field yang diekstrak."
+      }
+    }
+  ]
+}
