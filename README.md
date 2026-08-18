@@ -23,6 +23,7 @@ Dirancang sebagai service mandiri yang dipakai bersama oleh beberapa aplikasi le
 | [.docs/API.md](.docs/API.md) | Kontrak API v1 — payload, response, kode error |
 | [.docs/CONTEXT.md](.docs/CONTEXT.md) | Konteks bisnis consumer pertama, karakteristik tiap jenis dokumen, batas tanggung jawab |
 | [.docs/plans/build-plan.md](.docs/plans/build-plan.md) | Status implementasi, hasil kalibrasi, keputusan desain |
+| [.docs/plans/vlm-lokal.md](.docs/plans/vlm-lokal.md) | Usulan evaluasi VLM lokal untuk kasus yang tidak sanggup ditangani Tesseract |
 
 > Service ini lahir dari kebutuhan modul Vendor Registration di sebuah sistem e-Procurement, dan `.docs/CONTEXT.md` masih memakai consumer itu sebagai contoh konkret. Kontrak API-nya sendiri tidak mengandaikan consumer tertentu.
 
