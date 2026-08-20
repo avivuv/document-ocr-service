@@ -49,6 +49,21 @@
             </div>
         </div>
 
+        <div class="row">
+            <div>
+                <label for="engine">Engine</label>
+                <select id="engine" name="engine">
+                    <option value="">(default: {{ config('ocr.engine.default') }})</option>
+                    @foreach ($engines as $code)
+                        <option value="{{ $code }}" @selected(request('engine') === $code)>
+                            {{ $code }}@if ($code === 'hybrid') — Tesseract + VLM bila hasil meragukan @elseif ($code === 'vlm') — VLM saja, tanpa bbox @endif
+                        </option>
+                    @endforeach
+                </select>
+            </div>
+            <div></div>
+        </div>
+
         <div class="checks">
             <label><input type="checkbox" name="return_raw_text" value="1" checked> raw_text</label>
             <label><input type="checkbox" name="return_words" value="1"> bbox per kata</label>

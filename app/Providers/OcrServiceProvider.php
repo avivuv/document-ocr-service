@@ -10,9 +10,12 @@ use App\Contracts\Repositories\DocumentRepositoryInterface;
 use App\Contracts\Repositories\EngineRepositoryInterface;
 use App\Contracts\Repositories\ParserRepositoryInterface;
 use App\Contracts\Repositories\ProfileRepositoryInterface;
+use App\Contracts\Repositories\VlmRepositoryInterface;
 use App\Contracts\Repositories\WorkspaceRepositoryInterface;
 use App\Engines\FakeEngine;
+use App\Engines\HybridEngine;
 use App\Engines\TesseractEngine;
+use App\Engines\VlmEngine;
 use App\Parsers\NibParser;
 use App\Parsers\NpwpParser;
 use App\Repositories\BinaryRepository;
@@ -20,6 +23,7 @@ use App\Repositories\DocumentRepository;
 use App\Repositories\EngineRepository;
 use App\Repositories\ParserRepository;
 use App\Repositories\ProfileRepository;
+use App\Repositories\VlmRepository;
 use App\Repositories\WorkspaceRepository;
 use Illuminate\Contracts\Foundation\Application;
 use Illuminate\Support\ServiceProvider;
@@ -45,6 +49,7 @@ final class OcrServiceProvider extends ServiceProvider
         $this->app->bind(DocumentRepositoryInterface::class, DocumentRepository::class);
         $this->app->bind(ProfileRepositoryInterface::class, ProfileRepository::class);
         $this->app->bind(WorkspaceRepositoryInterface::class, WorkspaceRepository::class);
+        $this->app->bind(VlmRepositoryInterface::class, VlmRepository::class);
 
         $this->app->singleton(ParserRepositoryInterface::class, fn (Application $app): ParserRepository => new ParserRepository(
             array_map(static fn (string $parser) => $app->make($parser), self::PARSERS)
@@ -52,6 +57,8 @@ final class OcrServiceProvider extends ServiceProvider
 
         $this->app->singleton(EngineRepositoryInterface::class, fn (Application $app): EngineRepository => new EngineRepository([
             'tesseract' => $app->make(TesseractEngine::class),
+            'vlm'       => $app->make(VlmEngine::class),
+            'hybrid'    => new HybridEngine($app->make(TesseractEngine::class), $app->make(VlmEngine::class)),
             'fake'      => $app->make(FakeEngine::class),
         ]));
 

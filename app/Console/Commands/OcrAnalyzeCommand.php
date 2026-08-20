@@ -19,6 +19,7 @@ final class OcrAnalyzeCommand extends Command
         {--doc-type= : NPWP, NIB, ... (kosongkan agar service mengklasifikasi sendiri)}
         {--max-pages= : batasi jumlah halaman}
         {--force-ocr : abaikan text layer, paksa jalur OCR}
+        {--engine= : tesseract, vlm, atau hybrid (kosongkan agar memakai default)}
         {--words : sertakan bbox per kata}
         {--raw : tampilkan raw_text}';
 
@@ -45,6 +46,7 @@ final class OcrAnalyzeCommand extends Command
                 'return_raw_text' => (bool) $this->option('raw'),
                 'return_words'    => (bool) $this->option('words'),
                 'force_ocr'       => (bool) $this->option('force-ocr'),
+                'engine'          => $this->option('engine'),
             ], static fn ($value): bool => $value !== null)),
             docType: is_string($docType) && $docType !== '' ? mb_strtoupper($docType) : null,
         );

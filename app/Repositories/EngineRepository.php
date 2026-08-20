@@ -15,13 +15,17 @@ final class EngineRepository implements EngineRepositoryInterface
     {
     }
 
-    public function forDocType(?string $docType): OcrEngineInterface
+    public function forDocType(?string $docType, ?string $override = null): OcrEngineInterface
     {
-        $override = $docType === null
+        if ($override !== null && $override !== '') {
+            return $this->resolve($override);
+        }
+
+        $perDocType = $docType === null
             ? null
             : config('ocr.engine.per_doc_type.'.mb_strtoupper($docType));
 
-        return $this->resolve(is_string($override) ? $override : $this->defaultName());
+        return $this->resolve(is_string($perDocType) ? $perDocType : $this->defaultName());
     }
 
     public function default(): OcrEngineInterface

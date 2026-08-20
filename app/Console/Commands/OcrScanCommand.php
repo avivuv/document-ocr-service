@@ -23,7 +23,8 @@ final class OcrScanCommand extends Command
         {dir : direktori berisi berkas yang akan diproses}
         {--doc-type= : paksa jenis dokumen untuk seluruh berkas}
         {--max-pages= : batasi jumlah halaman}
-        {--force-ocr : abaikan text layer, paksa jalur OCR}';
+        {--force-ocr : abaikan text layer, paksa jalur OCR}
+        {--engine= : tesseract, vlm, atau hybrid (kosongkan agar memakai default)}';
 
     protected $description = 'Proses seluruh berkas dalam satu folder dan tampilkan ringkasannya';
 
@@ -85,6 +86,7 @@ final class OcrScanCommand extends Command
                 'max_pages'       => $this->option('max-pages'),
                 'return_raw_text' => false,
                 'force_ocr'       => (bool) $this->option('force-ocr'),
+                'engine'          => $this->option('engine'),
             ], static fn ($value): bool => $value !== null)),
             docType: $docType,
         );

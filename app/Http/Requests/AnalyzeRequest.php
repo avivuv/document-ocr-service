@@ -68,6 +68,7 @@ final class AnalyzeRequest extends FormRequest
             'options.return_raw_text' => ['nullable', 'boolean'],
             'options.return_words'    => ['nullable', 'boolean'],
             'options.force_ocr'       => ['nullable', 'boolean'],
+            'options.engine'          => ['nullable', 'string', 'max:32'],
             'file'                    => ['nullable', 'file'],
         ];
     }

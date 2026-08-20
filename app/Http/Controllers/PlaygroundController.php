@@ -27,6 +27,7 @@ final class PlaygroundController extends Controller
 
         return view('playground', [
             'docTypes' => $parsers->supportedDocTypes(),
+            'engines'  => $this->selectableEngines(),
             'result'   => null,
             'error'    => null,
         ]);
@@ -52,6 +53,7 @@ final class PlaygroundController extends Controller
                     'return_raw_text' => $request->boolean('return_raw_text'),
                     'return_words'    => $request->boolean('return_words'),
                     'force_ocr'       => $request->boolean('force_ocr'),
+                    'engine'          => $request->input('engine'),
                 ]),
                 docType: is_string($docType) && $docType !== '' ? mb_strtoupper($docType) : null,
                 uploaded: $request->file('file'),
@@ -64,9 +66,16 @@ final class PlaygroundController extends Controller
 
         return view('playground', [
             'docTypes' => $parsers->supportedDocTypes(),
+            'engines'  => $this->selectableEngines(),
             'result'   => $result,
             'error'    => $error,
         ]);
+    }
+
+    /** @return string[] */
+    private function selectableEngines(): array
+    {
+        return array_values((array) config('ocr.engine.selectable', []));
     }
 
     private function assertEnabled(): void

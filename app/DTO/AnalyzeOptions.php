@@ -12,7 +12,20 @@ final class AnalyzeOptions
         public readonly bool $returnRawText = true,
         public readonly bool $returnWords = false,
         public readonly bool $forceOcr = false,
+        public readonly ?string $engine = null,
     ) {
+    }
+
+    /** Nama engine bebas-teks tidak dipercaya: hanya yang terdaftar di config yang diterima. */
+    private static function engineOf(mixed $engine): ?string
+    {
+        if (! is_string($engine) || $engine === '') {
+            return null;
+        }
+
+        $engine = mb_strtolower($engine);
+
+        return in_array($engine, (array) config('ocr.engine.selectable', []), true) ? $engine : null;
     }
 
     public static function fromArray(array $options): self
@@ -26,6 +39,7 @@ final class AnalyzeOptions
             returnRawText: (bool) ($options['return_raw_text'] ?? true),
             returnWords: (bool) ($options['return_words'] ?? false),
             forceOcr: (bool) ($options['force_ocr'] ?? false),
+            engine: self::engineOf($options['engine'] ?? null),
         );
     }
 }

@@ -187,6 +187,95 @@ return [
         'per_doc_type' => [
             // 'KTP' => 'some_other_engine',
         ],
+
+        /*
+         * Engine yang boleh dipilih per permintaan. Daftar putih, bukan sekadar
+         * dokumentasi: nama engine dari luar tidak boleh menjangkau apa pun yang
+         * tidak disebut di sini — termasuk "fake", yang akan mengembalikan hasil
+         * palsu bila bisa dipanggil dari HTTP.
+         */
+        'selectable' => ['tesseract', 'vlm', 'hybrid'],
+    ],
+
+    /*
+    |--------------------------------------------------------------------------
+    | VLM (Vision Language Model) Lokal
+    |--------------------------------------------------------------------------
+    | Engine kedua yang membaca gambar secara langsung, dipakai untuk kasus yang
+    | tidak sanggup ditangani Tesseract — terutama foto kartu berlaminasi yang
+    | baris alamatnya hilang. Hasil pengukurannya di .docs/plans/vlm-hasil-evaluasi.md.
+    |
+    | Host bicara lewat HTTP (Ollama). Berbeda dari binary lain, jadi TIDAK lewat
+    | BinaryRepository — tetapi tetap lewat repository tersendiri, bukan service.
+    |
+    | Model diminta MENTRANSKRIPSI, bukan mengekstrak field: parser yang sudah ada
+    | beserta test-nya tetap berlaku, dan jalur ekstraksi tetap deterministik.
+    */
+    'vlm' => [
+        'base_url' => env('OCR_VLM_BASE_URL', 'http://127.0.0.1:11434'),
+        'model'    => env('OCR_VLM_MODEL', 'qwen3-vl:4b'),
+        'timeout'  => (int) env('OCR_VLM_TIMEOUT', 180),
+
+        /*
+         * Model ditahan di VRAM selama ini. Tanpa penahanan, pemanggilan pertama
+         * setelah model dilepas memakan ~55 detik tambahan untuk memuat ulang —
+         * melewati anggaran 30 detik per dokumen.
+         */
+        'keep_alive' => env('OCR_VLM_KEEP_ALIVE', '30m'),
+
+        /*
+         * Batas sisi terpanjang gambar yang dikirim ke model.
+         *
+         * Bukan penghematan waktu: beban VRAM sesungguhnya adalah jumlah token
+         * citra, bukan bobot model. Satu halaman resolusi penuh bisa meledakkan
+         * KV cache jauh melebihi bobotnya. 2000 px terukur cukup pada korpus uji.
+         */
+        'max_pixels' => (int) env('OCR_VLM_MAX_PIXELS', 2000),
+
+        'prompt' => env('OCR_VLM_PROMPT', 'Transcribe ALL text visible in this document image exactly as it appears, '
+            .'line by line, preserving the original order. Do not translate. Do not summarize. '
+            .'Do not explain. Do not invent or guess any text that is not clearly visible. '
+            .'If a character is unreadable, write [?]. If there is no text at all, output nothing. '
+            .'Output only the transcription.'),
+
+        /*
+         * Confidence yang dilaporkan pada field hasil bacaan VLM.
+         *
+         * VLM tidak memberi confidence per kata seperti kolom conf TSV Tesseract,
+         * sehingga angka ini TIDAK diturunkan dari model — ia bersandar pada
+         * kesepakatan antar-pembaca di mode hybrid. Pada mode vlm murni nilainya
+         * tetap null: tidak ada dasar untuk mengaku tahu.
+         */
+        'agreement_confidence' => (float) env('OCR_VLM_AGREEMENT_CONFIDENCE', 90.0),
+    ],
+
+    /*
+    |--------------------------------------------------------------------------
+    | Hybrid — Tesseract + VLM
+    |--------------------------------------------------------------------------
+    | Tesseract berjalan lebih dulu. VLM dipanggil HANYA bila hasilnya meragukan,
+    | sehingga dokumen yang sudah terbaca baik tidak membayar belasan detik
+    | tambahan tanpa perbaikan apa pun.
+    |
+    | Ambang confidence memakai sinyal yang sudah tersedia: pada foto NPWP yang
+    | gagal, address bernilai 0 dan vendor_name 1,72 — service sudah tahu hasilnya
+    | meragukan sebelum VLM dilibatkan.
+    */
+    'hybrid' => [
+        /*
+         * Penanda keraguan BUKAN rata-rata confidence halaman.
+         *
+         * Diukur pada korpus uji: foto NPWP yang baris alamatnya hilang tetap
+         * memberi rata-rata 66,1 — di atas ambang mana pun yang masuk akal —
+         * karena kata yang terbaca baik menutupi kata yang gagal. Yang benar-benar
+         * membedakan adalah PROPORSI kata berconfidence rendah: 31% pada dokumen
+         * yang gagal, 0% pada dokumen yang terbaca utuh.
+         */
+        'low_word_confidence' => (float) env('OCR_HYBRID_LOW_WORD_CONFIDENCE', 60.0),
+        'max_low_word_ratio'  => (float) env('OCR_HYBRID_MAX_LOW_WORD_RATIO', 0.15),
+
+        /* Halaman yang nyaris tidak menghasilkan teks: gagal telak, bukan sekadar ragu. */
+        'min_text_length' => (int) env('OCR_HYBRID_MIN_TEXT_LENGTH', 40),
     ],
 
     /*

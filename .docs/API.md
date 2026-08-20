@@ -52,10 +52,31 @@ Menganalisa satu dokumen dan mengembalikan field terstruktur.
     "lang":            "ind+eng", // default dari profil jenis dokumen
     "return_raw_text": true,
     "return_words":    false,     // true → sertakan bbox per kata
-    "force_ocr":       false      // true → abaikan text layer, paksa OCR (debugging)
+    "force_ocr":       false,     // true → abaikan text layer, paksa OCR (debugging)
+    "engine":          null       // "tesseract" | "vlm" | "hybrid" — lihat catatan di bawah
   }
 }
 ```
+
+**`options.engine`** — kosongkan untuk memakai engine default server. Nilai di
+luar daftar yang diizinkan diabaikan, bukan ditolak.
+
+| Nilai | Cara kerja | `bbox` |
+|---|---|---|
+| `tesseract` | OCR biasa | ada |
+| `hybrid` | Tesseract dulu; VLM lokal dipanggil hanya bila hasilnya meragukan | ada |
+| `vlm` | VLM lokal saja | **null** |
+
+Menyetel `engine` **memaksa jalur OCR**, termasuk pada PDF yang punya text layer.
+Untuk dokumen digital, membiarkannya kosong hampir selalu lebih baik: jalur text
+layer lebih cepat dan lebih akurat.
+
+Pada mode `vlm`, `confidence` tidak diturunkan dari pembacaan karakter — engine
+tidak menghasilkan word box — sehingga field berlabel bernilai 100 mengikuti
+parser. Angka itu **bukan** ukuran keyakinan model. Mode `hybrid` melaporkan
+confidence yang benar-benar terukur.
+
+Cara kerja rincinya: `.docs/plans/vlm-hasil-evaluasi.md` §8.
 
 ### Request — multipart (untuk pengujian manual / Postman)
 

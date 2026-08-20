@@ -53,7 +53,15 @@ final class AnalyzeService
             $lang    = $request->options->lang ?? $profile['lang'];
 
             $probe = $this->textLayer->probe($file, $request->options->maxPages);
-            $useTextLayer = $probe->hasTextLayer && ! $request->options->forceOcr;
+
+            /*
+             * Memilih engine secara eksplisit berarti meminta jalur OCR. Tanpa ini,
+             * PDF ber-text-layer akan mengabaikan pilihan itu tanpa penjelasan —
+             * dan di playground pilihannya seolah tidak berpengaruh.
+             */
+            $useTextLayer = $probe->hasTextLayer
+                && ! $request->options->forceOcr
+                && $request->options->engine === null;
 
             if ($useTextLayer) {
                 $pages       = $this->pagesFromText($probe->text);
@@ -61,7 +69,7 @@ final class AnalyzeService
                 $version     = $this->textLayer->version();
                 $mode        = AnalyzeResult::MODE_TEXT_LAYER;
             } else {
-                $engine = $this->engines->forDocType($request->docType);
+                $engine = $this->engines->forDocType($request->docType, $request->options->engine);
 
                 if (! $this->preprocess->isAvailable()) {
                     $warnings[] = 'ImageMagick tidak terpasang — gambar diproses tanpa perbaikan citra.';

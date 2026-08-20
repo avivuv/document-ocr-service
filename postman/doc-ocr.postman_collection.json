@@ -1,7 +1,7 @@
 {
   "info": {
     "name": "Doc OCR Service — v1",
-    "description": "Kontrak lengkap ada di .docs/API.md. Isi variabel koleksi `base_url` dan `token` sebelum menjalankan request.",
+    "description": "Kontrak lengkap ada di .docs/API.md. Isi variabel koleksi `base_url` dan `token` sebelum menjalankan request.\n\nIsi `token` pada kolom **Current value**, bukan Initial value — Initial value ikut terbawa saat koleksi diekspor atau di-share.\n\nNilai `token` adalah bagian SETELAH titik dua pada OCR_API_TOKENS. Bagian sebelum titik dua adalah nama consumer, bukan bagian dari token.\n\nVariabel `inbox_path` dipakai request yang membaca berkas dari disk; sesuaikan dengan OCR_ALLOWED_BASE_PATHS di .env.",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
   },
   "variable": [
@@ -12,7 +12,12 @@
     },
     {
       "key": "token",
-      "value": "isi dari OCR_API_TOKENS",
+      "value": "isi dari OCR_API_TOKENS (bagian setelah titik dua)",
+      "type": "string"
+    },
+    {
+      "key": "inbox_path",
+      "value": "C:/laragon/www/document-ocr-service/storage/app/inbox",
       "type": "string"
     }
   ],
@@ -88,7 +93,83 @@
           "host": ["{{base_url}}"],
           "path": ["api", "v1", "documents", "analyze"]
         },
-        "description": "Bentuk untuk pengujian manual. Pilih berkas pada field `file`. Bila `file` terkirim, `source` boleh dihilangkan."
+        "description": "Bentuk untuk pengujian manual. Pilih berkas pada field `file`. Bila `file` terkirim, `source` boleh dihilangkan.\n\nPada multipart, `options` dikirim sebagai satu field bertipe text berisi JSON string — bukan beberapa field terpisah."
+      }
+    },
+    {
+      "name": "Analyze — hybrid (Tesseract + VLM)",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "X-Request-Id",
+            "value": "manual-hybrid-001"
+          }
+        ],
+        "body": {
+          "mode": "formdata",
+          "formdata": [
+            {
+              "key": "file",
+              "type": "file",
+              "src": null
+            },
+            {
+              "key": "doc_type",
+              "value": "NPWP",
+              "type": "text"
+            },
+            {
+              "key": "options",
+              "value": "{\"engine\":\"hybrid\",\"return_raw_text\":true}",
+              "type": "text"
+            }
+          ]
+        },
+        "url": {
+          "raw": "{{base_url}}/api/v1/documents/analyze",
+          "host": ["{{base_url}}"],
+          "path": ["api", "v1", "documents", "analyze"]
+        },
+        "description": "Tesseract berjalan lebih dulu; VLM lokal dipanggil HANYA bila hasilnya meragukan — teks terlalu pendek, atau lebih dari 15% katanya berconfidence di bawah 60.\n\nDipakai untuk foto kartu berlaminasi yang baris alamatnya gagal terbaca Tesseract. Dokumen yang sudah terbaca baik tidak memanggil VLM sama sekali, jadi tidak ada biaya waktu tambahan.\n\nWaktu: ~3 detik bila VLM tidak terpicu, 14-18 detik bila terpicu. Panggilan pertama setelah model dilepas dari VRAM menambah ~55 detik.\n\nMembutuhkan host VLM hidup (lihat OCR_VLM_BASE_URL). Bila host mati, hasil Tesseract dikembalikan apa adanya — permintaan TIDAK digagalkan.\n\n`bbox` tetap tersedia karena word box berasal dari Tesseract.\n\nCara kerja rincinya: .docs/plans/vlm-hasil-evaluasi.md §8."
+      }
+    },
+    {
+      "name": "Analyze — vlm saja",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "X-Request-Id",
+            "value": "manual-vlm-001"
+          }
+        ],
+        "body": {
+          "mode": "formdata",
+          "formdata": [
+            {
+              "key": "file",
+              "type": "file",
+              "src": null
+            },
+            {
+              "key": "doc_type",
+              "value": "NPWP",
+              "type": "text"
+            },
+            {
+              "key": "options",
+              "value": "{\"engine\":\"vlm\",\"return_raw_text\":true}",
+              "type": "text"
+            }
+          ]
+        },
+        "url": {
+          "raw": "{{base_url}}/api/v1/documents/analyze",
+          "host": ["{{base_url}}"],
+          "path": ["api", "v1", "documents", "analyze"]
+        },
+        "description": "VLM lokal saja; Tesseract tidak dijalankan. Berguna untuk MEMBANDINGKAN bacaan saat menyelidiki dokumen bermasalah — untuk pemakaian sehari-hari pilih \"hybrid\".\n\nDua hal yang berbeda dari mode lain:\n\n1. `bbox` selalu null — VLM tidak menghasilkan koordinat kata. Fitur sorot posisi di sisi consumer akan mati.\n\n2. `confidence` TIDAK diturunkan dari pembacaan karakter. Tanpa word box, ConfidenceService melewati penilaian engine dan meneruskan nilai parser apa adanya: 100 untuk field berlabel. Angka 100 itu BUKAN pernyataan keyakinan model — ia kekosongan informasi, bukan kepastian. Mode \"hybrid\" melaporkan angka yang benar-benar terukur.\n\nBila host VLM mati, permintaan ini GAGAL — tidak ada bacaan lain yang tersisa."
       }
     },
     {
@@ -107,15 +188,15 @@
         ],
         "body": {
           "mode": "raw",
-          "raw": "{\n  \"source\": {\n    \"type\": \"path\",\n    \"value\": \"C:/laragon/www/cimb-ocr/storage/app/inbox/npwp-contoh.pdf\"\n  },\n  \"doc_type\": \"NPWP\",\n  \"options\": {\n    \"max_pages\": 5,\n    \"return_raw_text\": true\n  }\n}"
+          "raw": "{\n  \"source\": {\n    \"type\": \"path\",\n    \"value\": \"{{inbox_path}}/npwp-contoh.pdf\"\n  },\n  \"doc_type\": \"NPWP\",\n  \"options\": {\n    \"max_pages\": 5,\n    \"return_raw_text\": true,\n    \"engine\": null\n  }\n}"
         },
         "url": {
           "raw": "{{base_url}}/api/v1/documents/analyze",
           "host": ["{{base_url}}"],
           "path": ["api", "v1", "documents", "analyze"]
         },
-        "description": "Bentuk yang dipakai worker consumer: service membaca berkas langsung dari disk, tanpa menyalin berkas lewat HTTP. Path wajib berada di dalam OCR_ALLOWED_BASE_PATHS."
-      }
+        "description": "Bentuk yang dipakai worker consumer: service membaca berkas langsung dari disk, tanpa menyalin berkas lewat HTTP. Path wajib berada di dalam OCR_ALLOWED_BASE_PATHS.\n\nPada body JSON, `engine` diletakkan di dalam objek `options` — biarkan null untuk memakai engine default server.\n\nCatatan: menyetel `engine` MEMAKSA jalur OCR, termasuk pada PDF yang punya text layer. Untuk dokumen digital seperti berkas contoh ini, membiarkannya null jauh lebih baik — jalur text layer selesai dalam ~430 ms dengan akurasi ~100%, sementara OCR memakan beberapa detik dengan hasil lebih buruk."
+        }
     },
     {
       "name": "Analyze — base64",
@@ -151,7 +232,7 @@
         ],
         "body": {
           "mode": "raw",
-          "raw": "{\n  \"source\": {\n    \"type\": \"path\",\n    \"value\": \"C:/laragon/www/cimb-ocr/storage/app/inbox/npwp-contoh.pdf\"\n  }\n}"
+          "raw": "{\n  \"source\": {\n    \"type\": \"path\",\n    \"value\": \"{{inbox_path}}/npwp-contoh.pdf\"\n  }\n}"
         },
         "url": {
           "raw": "{{base_url}}/api/v1/documents/analyze",
